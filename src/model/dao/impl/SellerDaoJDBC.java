@@ -5,19 +5,28 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
 import java.util.List;
 
 import db.DB;
 import db.DbException;
 import model.dao.SellerDao;
+import model.entities.Department;
 import model.entities.Seller;
 
 public class SellerDaoJDBC implements SellerDao {
 	
-	private static Connection conn = null;
+	private Connection conn;
+	
+	public SellerDaoJDBC (Connection conn) {
+		this.conn = conn;
+	}
+	
 	private static Statement st = null;
 	private static PreparedStatement pst = null;
 	private static ResultSet rs = null;
+	
+	SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
 
 	@Override
 	public void insert(Seller obj) {
@@ -27,14 +36,18 @@ public class SellerDaoJDBC implements SellerDao {
 				pst = conn.prepareStatement("INSERT INTO seller "
 						+ "(Name, Email, BirthDate, BaseSalary, DepartmentId) VALUES "
 						+ "(?, ?, ?, ?, ?)");
+				pst.setString(1, obj.getName());
+				pst.setString(2, obj.getEmail());
+				//pst.setDate(3, sdf.parseObject(obj.getBirthDate()));
+				pst.setDouble(4, obj.getBaseSalary());
+				pst.setInt(5, obj.getDepartment().getId());
 				pst.executeUpdate();
 			}
 			catch (SQLException e) {
 				throw new DbException(e.getMessage());
 			}
 			finally {
-				DB.closePreparedStatement();
-				DB.closeConnection();
+				DB.closePreparedStatement(pst);
 			}
 		}
 		
@@ -54,7 +67,35 @@ public class SellerDaoJDBC implements SellerDao {
 
 	@Override
 	public Seller findById(Integer id) {
-		// TODO Auto-generated method stub
+		try {
+			pst = conn.prepareStatement("SELECT seller.*,department.Name "
+					+ "FROM seller "
+					+ "INNER JOIN department "
+					+ "ON department.Id = seller.DepartmentId "
+					+ "WHERE seller.Id = ?");
+			pst.setInt(1, id);
+			rs = pst.executeQuery();
+			if(rs.next()) {
+				Department dept = new Department();
+				dept.setId(rs.getInt("Id"));
+				dept.setName(rs.getString("Name"));
+				Seller sel = new Seller();
+				sel.setId(rs.getInt("Id"));
+				sel.setName(rs.getString("Name"));
+				sel.setEmail(rs.getString("Email"));
+				sel.setBirthDate(rs.getDate("BirthDate"));
+				sel.setBaseSalary(rs.getDouble("BaseSalary"));
+				sel.setDepartment(dept);
+				return sel;
+			}
+		}
+		catch (SQLException e) {
+			throw new DbException(e.getMessage());
+		}
+		finally {
+			DB.closePreparedStatement(pst);
+			DB.closeResultSet(rs);
+		}
 		return null;
 	}
 

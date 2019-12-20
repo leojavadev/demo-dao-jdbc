@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
@@ -12,8 +13,6 @@ import java.util.Properties;
 public class DB {
 	
 	private static Connection conn = null;
-	private static Statement st = null;
-	private static PreparedStatement pst = null;
 	
 	public static Connection getConnection() {
 		if(conn == null) {
@@ -40,7 +39,7 @@ public class DB {
 		}
 	}
 	
-	public static void closeStatement() {
+	public static void closeStatement(Statement st) {
 		if(st != null) {
 			try {
 				st.close();
@@ -51,12 +50,23 @@ public class DB {
 		}
 	}
 	
-	public static void closePreparedStatement() {
+	public static void closePreparedStatement(PreparedStatement pst) {
 		if(pst != null) {
 			try {
 				pst.close();
 			}
 			catch(SQLException e) {
+				throw new DbException(e.getMessage());
+			}
+		}
+	}
+	
+	public static void closeResultSet(ResultSet rs) {
+		if(rs != null) {
+			try {
+				rs.close();
+			}
+			catch (SQLException e) {
 				throw new DbException(e.getMessage());
 			}
 		}
